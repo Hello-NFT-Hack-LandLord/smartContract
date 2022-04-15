@@ -1,0 +1,90 @@
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+
+contract landSeedNFT is ERC721
+{
+  uint iCounter;
+  bytes32 hashedSeed;
+
+  uint[] private arrTokenIds;
+  bytes32[] private arrSeeds;
+
+  mapping(uint256 => bytes32) private tokenToSeeds;
+
+  constructor() ERC721("CryptoLand", "CLND")
+  {
+    iCounter = 0;
+  }
+
+  function doHash(uint iD) public view returns(bytes32)
+  {
+    return keccak256(abi.encodePacked(uint(iD), address(msg.sender)));
+  }
+
+  function doHash2(uint iD, bytes32 hashedValue) public pure returns(bytes32)
+  {
+    return sha256(abi.encodePacked(uint(iD), bytes32(hashedValue)));
+  }
+
+  //Mints the NFT and makes the mapping of the token ID to the hash that will be used to generate a seed of a        P2E land plot.
+  function mintWithHashedSeed(bytes32 hashedSeedNFT, address to, uint256 tokenId) internal virtual 
+  {
+    _safeMint(to, tokenId);
+    tokenToSeeds[tokenId] = hashedSeedNFT;
+  }
+
+  //Claculates automatically the token ID and generates the hash of the land seed.
+  function __mintLand() public returns(bytes32)
+  {   
+    uint iCounter2;
+    iCounter2 = __getLength();
+    iCounter2++;
+
+    bytes32 hashed1;
+    bytes32 hashed2;
+
+    hashed1 = doHash(iCounter2);
+    hashed2 = doHash2(iCounter2, hashed1);
+
+    arrSeeds.push(hashed2);
+    arrTokenIds.push(iCounter2);
+    iCounter++;
+
+    mintWithHashedSeed(hashed2, msg.sender, iCounter2);
+
+    return hashed2;
+  }
+
+  function __getLength() public view returns (uint)
+  {
+    return arrTokenIds.length;
+  }
+
+  function __getCounter() public view returns (uint)
+  {
+    return iCounter;
+  }
+
+  function __getBalance() public view returns (uint)
+  {
+    return balanceOf(msg.sender);
+  }
+
+  function __getOwner(uint iID) public view returns (address)
+  {
+    return ownerOf(iID);
+  }
+
+  //Returns the seed hash of a land plot linked to a NFT.
+  function __getSeedHash(uint iIdToken) public view returns (bytes32)
+  {
+    return tokenToSeeds[iIdToken];
+  }
+
+  function __transferTo(address to, uint256 iIDToken) public
+  {
+    _transfer(msg.sender, to, iIDToken);
+  }
+}
